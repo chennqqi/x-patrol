@@ -25,17 +25,17 @@ THE SOFTWARE.
 package tasks
 
 import (
-	"x-patrol/util/index"
-	"x-patrol/util/searcher"
-	"x-patrol/models"
-	"x-patrol/vars"
-	"x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/util/index"
+	"github.com/MiSecurity/x-patrol/util/searcher"
+	"github.com/MiSecurity/x-patrol/models"
+	"github.com/MiSecurity/x-patrol/vars"
+	"github.com/MiSecurity/x-patrol/logger"
 
 	"time"
 	"os"
 	"sync"
 	"strings"
-	"x-patrol/util/githubsearch"
+	"github.com/MiSecurity/x-patrol/util/githubsearch"
 )
 
 const (

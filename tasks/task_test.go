@@ -25,10 +25,10 @@ THE SOFTWARE.
 package tasks_test
 
 import (
-	"x-patrol/tasks"
-	"x-patrol/models"
-	"x-patrol/vars"
-	"x-patrol/util/index"
+	"github.com/MiSecurity/x-patrol/tasks"
+	"github.com/MiSecurity/x-patrol/models"
+	"github.com/MiSecurity/x-patrol/vars"
+	"github.com/MiSecurity/x-patrol/util/index"
 
 	"testing"
 	"encoding/json"

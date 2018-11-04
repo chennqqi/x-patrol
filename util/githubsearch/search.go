@@ -25,14 +25,14 @@ THE SOFTWARE.
 package githubsearch
 
 import (
-	"x-patrol/models"
+	"github.com/MiSecurity/x-patrol/models"
 
 	"github.com/google/go-github/github"
 
 	"encoding/json"
 	"time"
 	"sync"
-	"x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/logger"
 )
 
 var (

@@ -27,7 +27,7 @@ package githubsearch_test
 import (
 	"testing"
 
-	"x-patrol/util/githubsearch"
+	"github.com/MiSecurity/x-patrol/util/githubsearch"
 )
 
 func TestClient_GetUserInfo(t *testing.T) {

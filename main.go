@@ -25,7 +25,7 @@ THE SOFTWARE.
 package main
 
 import (
-	"x-patrol/cmd"
+	"github.com/MiSecurity/x-patrol/cmd"
 
 	"github.com/urfave/cli"
 

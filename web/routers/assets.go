@@ -25,7 +25,7 @@ THE SOFTWARE.
 package routers
 
 import (
-	"x-patrol/models"
+	"github.com/MiSecurity/x-patrol/models"
 
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/csrf"

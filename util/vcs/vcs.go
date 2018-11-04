@@ -1,7 +1,7 @@
 package vcs
 
 import (
-	"x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/logger"
 
 	"fmt"
 	"os"

@@ -25,8 +25,8 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"x-patrol/web"
-	"x-patrol/util"
+	"github.com/MiSecurity/x-patrol/web"
+	"github.com/MiSecurity/x-patrol/util"
 
 	"github.com/urfave/cli"
 )

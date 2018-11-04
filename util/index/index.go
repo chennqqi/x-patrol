@@ -1,8 +1,8 @@
 package index
 
 import (
-	"x-patrol/util/codesearch/index"
-	"x-patrol/util/codesearch/regexp"
+	"github.com/MiSecurity/x-patrol/util/codesearch/index"
+	"github.com/MiSecurity/x-patrol/util/codesearch/regexp"
 
 	"compress/gzip"
 	"encoding/gob"

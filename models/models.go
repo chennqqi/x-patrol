@@ -25,8 +25,8 @@ THE SOFTWARE.
 package models
 
 import (
-	"x-patrol/settings"
-	"x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/settings"
+	"github.com/MiSecurity/x-patrol/logger"
 
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/go-sql-driver/mysql"

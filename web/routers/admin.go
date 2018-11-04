@@ -25,7 +25,7 @@ THE SOFTWARE.
 package routers
 
 import (
-	"x-patrol/models"
+	"github.com/MiSecurity/x-patrol/models"
 
 	"gopkg.in/macaron.v1"
 

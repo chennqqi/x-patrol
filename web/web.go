@@ -25,9 +25,9 @@ THE SOFTWARE.
 package web
 
 import (
-	"x-patrol/web/routers"
-	"x-patrol/logger"
-	"x-patrol/vars"
+	"github.com/MiSecurity/x-patrol/web/routers"
+	"github.com/MiSecurity/x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/vars"
 
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"

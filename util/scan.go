@@ -25,14 +25,14 @@ THE SOFTWARE.
 package util
 
 import (
-	"x-patrol/tasks"
-	"x-patrol/util/githubsearch"
+	"github.com/MiSecurity/x-patrol/tasks"
+	"github.com/MiSecurity/x-patrol/util/githubsearch"
 
 	"github.com/urfave/cli"
 
 	"strings"
 	"time"
-	"x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/logger"
 )
 
 func Scan(ctx *cli.Context) () {

@@ -25,8 +25,8 @@ THE SOFTWARE.
 package githubsearch
 
 import (
-	"x-patrol/models"
-	"x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/models"
+	"github.com/MiSecurity/x-patrol/logger"
 
 	"github.com/google/go-github/github"
 

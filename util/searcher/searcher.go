@@ -25,11 +25,11 @@ THE SOFTWARE.
 package searcher
 
 import (
-	"x-patrol/util/index"
-	"x-patrol/models"
-	"x-patrol/logger"
-	"x-patrol/vars"
-	"x-patrol/util/vcs"
+	"github.com/MiSecurity/x-patrol/util/index"
+	"github.com/MiSecurity/x-patrol/models"
+	"github.com/MiSecurity/x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/vars"
+	"github.com/MiSecurity/x-patrol/util/vcs"
 
 	"sync"
 	"time"

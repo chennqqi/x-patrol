@@ -25,9 +25,9 @@ THE SOFTWARE.
 package searcher_test
 
 import (
-	"x-patrol/util/searcher"
-	"x-patrol/models"
-	"x-patrol/vars"
+	"github.com/MiSecurity/x-patrol/util/searcher"
+	"github.com/MiSecurity/x-patrol/models"
+	"github.com/MiSecurity/x-patrol/vars"
 
 	"testing"
 )

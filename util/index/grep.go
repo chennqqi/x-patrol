@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"x-patrol/util/codesearch/regexp"
+	"github.com/MiSecurity/x-patrol/util/codesearch/regexp"
 )
 
 var nl = []byte{'\n'}

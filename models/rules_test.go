@@ -25,7 +25,7 @@ THE SOFTWARE.
 package models_test
 
 import (
-	"x-patrol/models"
+	"github.com/MiSecurity/x-patrol/models"
 
 	"testing"
 )

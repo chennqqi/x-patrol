@@ -25,8 +25,8 @@ THE SOFTWARE.
 package models
 
 import (
-	"x-patrol/util/index"
-	"x-patrol/vars"
+	"github.com/MiSecurity/x-patrol/util/index"
+	"github.com/MiSecurity/x-patrol/vars"
 
 	"time"
 )

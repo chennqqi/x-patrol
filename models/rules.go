@@ -25,7 +25,7 @@ THE SOFTWARE.
 package models
 
 import (
-	"x-patrol/vars"
+	"github.com/MiSecurity/x-patrol/vars"
 
 	"os"
 	"encoding/json"

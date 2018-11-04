@@ -25,7 +25,7 @@ THE SOFTWARE.
 package models
 
 import (
-	"x-patrol/misc"
+	"github.com/MiSecurity/x-patrol/misc"
 )
 
 type Admin struct {

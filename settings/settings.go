@@ -25,8 +25,8 @@ THE SOFTWARE.
 package settings
 
 import (
-	"x-patrol/logger"
-	"x-patrol/vars"
+	"github.com/MiSecurity/x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/vars"
 
 	"gopkg.in/ini.v1"
 )
