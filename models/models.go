@@ -25,18 +25,18 @@ THE SOFTWARE.
 package models
 
 import (
-	"github.com/MiSecurity/x-patrol/settings"
 	"github.com/MiSecurity/x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/settings"
 
-	_ "github.com/mattn/go-sqlite3"
+	//_ "github.com/mattn/go-sqlite3"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 
-	"github.com/go-xorm/xorm"
 	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
 
-	"path/filepath"
 	"fmt"
+	"path/filepath"
 )
 
 var (
@@ -78,10 +78,12 @@ func init() {
 		Engine.Sync(new(UrlPattern))
 		Engine.Sync2(new(GithubToken))
 		Engine.Sync2(new(CodeResult))
+		// Engine.Sync2(new(index.Match))
 
 		InitRules()
 		InitAdmin()
 		InitUrlPattern()
+
 	}
 }
 
@@ -89,10 +91,14 @@ func init() {
 func NewDbEngine() (err error) {
 	switch DATA_TYPE {
 	case "sqlite":
-		cur, _ := filepath.Abs(".")
-		dataSourceName := fmt.Sprintf("%v/%v/%v.db", cur, DATA_PATH, DATA_NAME)
+		//cur, _ := filepath.Abs(".")
+		dataSourceName := fmt.Sprintf(`%v\%v.db`, DATA_PATH, DATA_NAME)
 		logger.Log.Infof("sqlite db: %v", dataSourceName)
 		Engine, err = xorm.NewEngine("sqlite3", dataSourceName)
+		if err != nil {
+			logger.Log.Errorf("Init rules, err: %v", err)
+			return err
+		}
 		Engine.Logger().SetLevel(core.LOG_OFF)
 		err = Engine.Ping()
 
@@ -111,10 +117,10 @@ func NewDbEngine() (err error) {
 		err = Engine.Ping()
 
 	default:
-		cur, _ := filepath.Abs(".")
-		dataSourceName := fmt.Sprintf("%v/%v/%v.db", cur, DATA_PATH, DATA_NAME)
-		logger.Log.Infof("sqlite db: %v", dataSourceName)
-		Engine, err = xorm.NewEngine("sqlite3", dataSourceName)
+		dataSourceName := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8",
+			USERNAME, PASSWORD, DATA_HOST, DATA_PORT, DATA_NAME)
+
+		Engine, err = xorm.NewEngine("mysql", dataSourceName)
 		Engine.Logger().SetLevel(core.LOG_OFF)
 		err = Engine.Ping()
 	}
@@ -122,10 +128,10 @@ func NewDbEngine() (err error) {
 	return err
 }
 
-func InitRules() () {
+func InitRules() {
 	cur, _ := filepath.Abs(".")
 	ruleFile := fmt.Sprintf("%v/conf/gitrob.json", cur)
-	rules, err := GetRules()
+	rules, err := GetAllRules()
 	if err == nil && len(rules) == 0 {
 		logger.Log.Infof("Init rules, err: %v", InsertRules(ruleFile))
 	}

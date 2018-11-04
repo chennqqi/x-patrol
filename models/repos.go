@@ -32,8 +32,8 @@ type Repo struct {
 	Id     int64
 	Name   string
 	Url    string
-	Src    *InputInfo
-	Status int `xorm:"int notnull default(1)"`
+	Src    *InputInfo `xorm:"json"`
+	Status int        `xorm:"int notnull default(1)"`
 }
 
 func NewRepo(name, repoUrl string, src *InputInfo) (repo *Repo) {

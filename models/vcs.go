@@ -30,12 +30,33 @@ import (
 	"time"
 )
 
-type UrlPattern struct {
-	Id      int64
-	BaseUrl string `json:"base-url"`
-	Anchor  string `json:"anchor"`
-	Vcs     string `json:"vcs"`
-}
+type (
+	UrlPattern struct {
+		Id      int64
+		BaseUrl string `json:"base-url"`
+		Anchor  string `json:"anchor"`
+		Vcs     string `json:"vcs"`
+	}
+
+	VcsConfig struct {
+		Id       int64
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	RepoConfig struct {
+		Id              int64
+		Name            string        `json:"name"`
+		Url             string        `json:"url"`
+		PollInterval    time.Duration `json:"poll_interval"`
+		Vcs             string        `json:"vcs"`
+		UrlPattern      UrlPattern    `json:"url_pattern"`
+		VcsConfig       VcsConfig     `json:"vcs_config"`
+		AutoPullUpdate  bool          `json:"auto_pull_update"`
+		ExcludeDotFiles bool          `json:"exclude_dot_files"`
+		Status          int           `json:"status"`
+	}
+)
 
 func NewUrlParttern(baseUrl, anchor, vcs string) (*UrlPattern) {
 	return &UrlPattern{BaseUrl: baseUrl, Anchor: anchor, Vcs: vcs}
@@ -49,11 +70,32 @@ func (u *UrlPattern) Insert() (int64, error) {
 	return Engine.Insert(u)
 }
 
+func ListUrlPattern() ([]UrlPattern, error) {
+	UrlPatterns := make([]UrlPattern, 0)
+	err := Engine.Find(&UrlPatterns)
+	return UrlPatterns, err
+}
+
 func InitUrlPattern() () {
-	u := NewUrlParttern(vars.DefaultBaseUrl, vars.DefaultAnchor, "git")
-	has, err := u.Exist()
-	if err == nil && !has {
-		u.Insert()
+	urlPatterns := make([]*UrlPattern, 0)
+
+	gitPattern := NewUrlParttern(vars.DefaultBaseUrl, vars.DefaultAnchor, "github")
+	gitlabPattern := NewUrlParttern("{url}/master/{path}{anchor}", vars.DefaultAnchor, "gitlab")
+	svnPattern := NewUrlParttern("{url}/{path}{anchor}", "", "svn")
+	// localPatten := NewUrlParttern(vars.DefaultBaseUrl, vars.DefaultAnchor, "git")
+	bitbucketPatten := NewUrlParttern("{url}/src/master/{path}{anchor}", "#{filename}-{line}", "bitbucket")
+
+	urlPatterns = append(urlPatterns, gitPattern)
+	urlPatterns = append(urlPatterns, gitlabPattern)
+	urlPatterns = append(urlPatterns, svnPattern)
+	// urlPatterns = append(urlPatterns, localPatten)
+	urlPatterns = append(urlPatterns, bitbucketPatten)
+
+	for _, u := range urlPatterns {
+		has, err := u.Exist()
+		if err == nil && !has {
+			u.Insert()
+		}
 	}
 }
 
@@ -63,27 +105,16 @@ func GetUrlPattern(vcs string) (bool, error, *UrlPattern) {
 	return has, err, u
 }
 
-type RepoConfig struct {
-	Id              int64
-	Name            string        `json:"name"`
-	Url             string        `json:"url"`
-	PollInterval    time.Duration `json:"poll_interval"`
-	Vcs             string        `json:"vcs"`
-	UrlPattern      UrlPattern    `json:"url_pattern"`
-	AutoPullUpdate  bool          `json:"auto_pull_update"`
-	ExcludeDotFiles bool          `json:"exclude_dot_files"`
-}
-
 func NewRepoConfig(name string,
 	url string,
 	interval time.Duration,
 	vcs string,
 	urlPat UrlPattern,
+	vcsConf VcsConfig,
 	isPull bool,
 	isExclude bool) (*RepoConfig) {
 	return &RepoConfig{Name: name, Url: url, PollInterval: interval, Vcs: vcs, UrlPattern: urlPat,
-		AutoPullUpdate: isPull,
-		ExcludeDotFiles: isExclude}
+		VcsConfig: vcsConf, AutoPullUpdate: isPull, ExcludeDotFiles: isExclude, Status: 1}
 }
 
 func (r *RepoConfig) Insert() (int64, error) {
@@ -106,24 +137,63 @@ func ListRepoConfig() ([]RepoConfig, error) {
 	return reposConfig, err
 }
 
-func InsertReposConfig() {
-	// first delete all repos config
-	ClearReposConfig()
-	_, _, urlPat := GetUrlPattern("git")
-	repos, err := ListEnableRepos()
-	if err == nil {
-		for _, repo := range repos {
-			repoCnf := NewRepoConfig(repo.Name, repo.Url, vars.DefaultPollInterval, "git",
-				*urlPat, true, false)
-			has, err := repoCnf.Exist()
-			if err == nil && !has {
-				repoCnf.Insert()
-			}
-		}
+func ListRepoConfigPage(page int) ([]RepoConfig, int, error) {
+	reposConf := make([]RepoConfig, 0)
+	totalPages, err := Engine.Table("repo_config").Count()
+	var pages int
+
+	if int(totalPages)%vars.PAGE_SIZE == 0 {
+		pages = int(totalPages) / vars.PAGE_SIZE
+	} else {
+		pages = int(totalPages)/vars.PAGE_SIZE + 1
 	}
+
+	if page >= pages {
+		page = pages
+	}
+
+	if page < 1 {
+		page = 1
+	}
+
+	err = Engine.Limit(vars.PAGE_SIZE, (page-1)*vars.PAGE_SIZE).Find(&reposConf)
+	return reposConf, pages, err
 }
 
-func ClearReposConfig() (error) {
-	_, err := Engine.Exec("delete from repo_config")
+func ListValidRepoConfig() ([]RepoConfig, error) {
+	reposConfig := make([]RepoConfig, 0)
+	err := Engine.Where("status=1").Find(&reposConfig)
+	return reposConfig, err
+}
+
+func EnableRepoConfById(id int64) (error) {
+	repoConf := new(RepoConfig)
+	has, err := Engine.ID(id).Get(repoConf)
+	if err == nil && has {
+		repoConf.Status = 1
+		_, err = Engine.ID(id).Cols("status").Update(repoConf)
+	}
+	return err
+}
+
+func DisableRepoConfById(id int64) (error) {
+	repoConf := new(RepoConfig)
+	has, err := Engine.ID(id).Get(repoConf)
+	if err == nil && has {
+		repoConf.Status = 0
+		_, err = Engine.ID(id).Cols("status").Update(repoConf)
+	}
+	return err
+}
+
+func DeleteAllReposConf() (error) {
+	sqlCmd := "delete from repo_conf"
+	_, err := Engine.Exec(sqlCmd)
+	return err
+}
+
+func DeleteRepoConfById(id int64) (err error) {
+	repoConf := new(RepoConfig)
+	_, err = Engine.Id(id).Delete(repoConf)
 	return err
 }

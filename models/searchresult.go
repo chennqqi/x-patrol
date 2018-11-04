@@ -105,7 +105,59 @@ func ListGithubSearchResultPage(page int) ([]CodeResult, int, error) {
 		page = 1
 	}
 
-	err = Engine.Where("status=0").Omit("repository").Limit(vars.PAGE_SIZE, (page-1)*vars.PAGE_SIZE).Find(&results)
+	err = Engine.Where("status=0").Omit("repository").Desc("id").Limit(vars.PAGE_SIZE,
+		(page-1)*vars.PAGE_SIZE).Find(&results)
+
+	return results, pages, err
+}
+
+func ListHistoryGithubSearchResultPage(page int) ([]CodeResult, int, error) {
+	results := make([]CodeResult, 0)
+	totalPages, err := Engine.Table("code_result").Count()
+	var pages int
+
+	if int(totalPages)%vars.PAGE_SIZE == 0 {
+		pages = int(totalPages) / vars.PAGE_SIZE
+	} else {
+		pages = int(totalPages)/vars.PAGE_SIZE + 1
+	}
+
+	if page >= pages {
+		page = pages
+	}
+
+	if page < 1 {
+		page = 1
+	}
+
+	err = Engine.Omit("repository").Desc("id").Limit(vars.PAGE_SIZE,
+		(page-1)*vars.PAGE_SIZE).Find(&results)
+
+	return results, pages, err
+}
+
+
+func ListConfirmGithubResultPage(page int) ([]CodeResult, int, error) {
+	results := make([]CodeResult, 0)
+	totalPages, err := Engine.Table("code_result").Where("status=1").Count()
+	var pages int
+
+	if int(totalPages)%vars.PAGE_SIZE == 0 {
+		pages = int(totalPages) / vars.PAGE_SIZE
+	} else {
+		pages = int(totalPages)/vars.PAGE_SIZE + 1
+	}
+
+	if page >= pages {
+		page = pages
+	}
+
+	if page < 1 {
+		page = 1
+	}
+
+	err = Engine.Where("status=1").Omit("repository").Desc("id").Limit(vars.PAGE_SIZE,
+		(page-1)*vars.PAGE_SIZE).Find(&results)
 
 	return results, pages, err
 }
@@ -127,12 +179,31 @@ func ConfirmReportById(id int64) (err error) {
 	return err
 }
 
+func ResetReportById(id int64) (err error) {
+	report := new(CodeResult)
+	has, err := Engine.Id(id).Get(report)
+	if err == nil && has {
+		report.Status = 0
+		_, err = Engine.Id(id).Cols("status").Update(report)
+	}
+	return err
+}
+
 func CancelReportById(id int64) (err error) {
 	report := new(CodeResult)
 	has, err := Engine.Id(id).Omit("repository").Get(report)
 	if err == nil && has {
 		report.Status = 2
 		_, err = Engine.Id(id).Cols("status").Update(report)
+		repoName := report.RepoName
+		CancelReportByRepo(repoName)
 	}
+	return err
+}
+
+func CancelReportByRepo(repo string) (err error) {
+
+	_, err = Engine.Table("code_result").Exec("update code_result set status=2 where repo_name=?", repo)
+
 	return err
 }

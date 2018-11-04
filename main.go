@@ -31,6 +31,8 @@ import (
 
 	"os"
 	"runtime"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func init() {

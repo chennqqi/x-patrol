@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2018 sec.xiaomi.com
+Copyright (c) 2018 sec.lu
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,44 +22,23 @@ THE SOFTWARE.
 
 */
 
-package util
+package lib
 
 import (
-	"github.com/MiSecurity/x-patrol/tasks"
-	"github.com/MiSecurity/x-patrol/util/githubsearch"
-	"github.com/MiSecurity/x-patrol/logger"
-
-	"github.com/urfave/cli"
-
-	"strings"
-	"time"
+	"crypto/md5"
+	"fmt"
+	"io"
 )
 
-func Scan(ctx *cli.Context) () {
-	var ScanMode = "github"
-	var Interval time.Duration = 900
+// md5 function
+func MD5(s string) (m string) {
+	h := md5.New()
+	io.WriteString(h, s)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
 
-	if ctx.IsSet("mode") {
-		ScanMode = strings.ToLower(ctx.String("mode"))
-	}
-
-	if ctx.IsSet("time") {
-		Interval = time.Duration(ctx.Int("time"))
-	}
-
-	switch ScanMode {
-	case "github":
-		logger.Log.Println("scan github code")
-		githubsearch.ScheduleTasks(Interval)
-	case "local":
-		logger.Log.Println("scan local repos")
-		tasks.ScheduleTasks(Interval)
-	case "all":
-		logger.Log.Println("scan github code and local repos")
-		go githubsearch.ScheduleTasks(Interval)
-		tasks.ScheduleTasks(Interval)
-	default:
-		logger.Log.Println("scan github code ")
-		go githubsearch.ScheduleTasks(Interval)
-	}
+// create a sign by key & md5
+func MakeHash(repo, revision, filename, line string) (hash string) {
+	hash = MD5(fmt.Sprintf("%v-%v-%v-%v", repo, revision, filename, line))
+	return hash
 }

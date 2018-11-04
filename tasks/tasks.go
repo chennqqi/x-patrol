@@ -30,12 +30,12 @@ import (
 	"github.com/MiSecurity/x-patrol/models"
 	"github.com/MiSecurity/x-patrol/vars"
 	"github.com/MiSecurity/x-patrol/logger"
+	"github.com/MiSecurity/x-patrol/util/lib"
 
 	"time"
 	"os"
 	"sync"
 	"strings"
-	"github.com/MiSecurity/x-patrol/util/githubsearch"
 )
 
 const (
@@ -54,9 +54,18 @@ type SearchResponse struct {
 	err  error
 }
 
+func init() {
+	vars.Exts = make(map[string]bool)
+	vars.Exts["js"] = true
+	vars.Exts["css"] = true
+	vars.Exts["html"] = true
+	vars.Exts["htm"] = true
+}
+
 func GenerateSearcher(reposConfig []models.RepoConfig) (map[string]*searcher.Searcher, map[string]bool, bool, error) {
 	errRepos := make(map[string]bool)
 	hasError := false
+
 	// Ensure we have a repos path
 	if _, err := os.Stat(vars.REPO_PATH); err != nil {
 		if err := os.MkdirAll(vars.REPO_PATH, os.ModePerm); err != nil {
@@ -97,6 +106,7 @@ func SearchRepos(
 	ch := make(chan *SearchResponse, num)
 	for _, repo := range repos {
 		go func(repo string) {
+			logger.Log.Infof("check repo: %v with rule: %v, filename: %v", repo, query, opts.FileRegexp)
 			fms, err := idx[repo].Search(query, opts)
 			ch <- &SearchResponse{repo, fms, err}
 		}(repo)
@@ -106,6 +116,14 @@ func SearchRepos(
 	for i := 0; i < num; i++ {
 
 		r := <-ch
+		if r == nil {
+			continue
+		}
+
+		if r.res == nil {
+			continue
+		}
+
 		r.res.RuleId = rule.Id
 		r.res.RuleCaption = rule.Caption
 		r.res.RulePattern = rule.Pattern
@@ -163,13 +181,13 @@ func SegmentationTask(reposConfig []models.RepoConfig) (map[int][]models.RepoCon
 	scanBatch := totalRepos / vars.MAX_Concurrency_REPOS
 
 	for i := 0; i < scanBatch; i++ {
-		curTask := reposConfig[vars.MAX_Concurrency_REPOS*i:vars.MAX_Concurrency_REPOS*(i+1)]
+		curTask := reposConfig[vars.MAX_Concurrency_REPOS*i : vars.MAX_Concurrency_REPOS*(i+1)]
 		tasks[i] = curTask
 	}
 
 	if totalRepos%vars.MAX_Concurrency_REPOS > 0 {
 		n := len(tasks)
-		tasks[n] = reposConfig[vars.MAX_Concurrency_REPOS*scanBatch:totalRepos]
+		tasks[n] = reposConfig[vars.MAX_Concurrency_REPOS*scanBatch : totalRepos]
 	}
 	return tasks
 }
@@ -186,9 +204,8 @@ func DistributionTask(tasksMap map[int][]models.RepoConfig, rules []models.Rules
 
 func Run(reposConfig []models.RepoConfig, rule models.Rules) {
 	var wg sync.WaitGroup
-	 wg.Add(len(reposConfig))
+	wg.Add(len(reposConfig))
 	for _, rConfig := range reposConfig {
-		// wg.Add(1)
 		reposCfg := make([]models.RepoConfig, 0)
 		reposCfg = append(reposCfg, rConfig)
 
@@ -196,23 +213,33 @@ func Run(reposConfig []models.RepoConfig, rule models.Rules) {
 			defer wg.Done()
 			SaveSearchResult(DoSearch(reposCfg, rule))
 		}(reposCfg, rule)
-		// wg.Wait()
 	}
-	 wg.Wait()
+	// wg.Wait()
+	waitTimeout(&wg, vars.TIME_OUT*time.Second)
 }
 
 func SaveSearchResult(responses map[string]*index.SearchResponse, rule models.Rules, err error, ) {
 	if err == nil {
 		for repo, resp := range responses {
-			result := models.NewSearchResult(resp.Matches,
-				repo,
-				resp.FilesWithMatch,
-				resp.FilesOpened, resp.Duration,
-				resp.Revision, rule)
+			revision := resp.Revision
+			for _, fileMatches := range resp.Matches {
 
-			has, _ := result.Exist()
-			if ! has {
-				result.Insert()
+				filename := fileMatches.Filename
+				ext := GetExt(filename)
+				if vars.Exts[ext] {
+					continue
+				}
+
+				for _, matches := range fileMatches.Matches {
+					hash := lib.MakeHash(repo, revision, filename, matches.Line)
+					// logger.Log.Infof("repo:%v, revision:%v, filename: %v, matches Line: %v", repo,
+					//	revision, filename, matches.Line)
+					result := models.NewSearchResult(matches, repo, filename, revision, hash, rule)
+					has, err := result.Exist()
+					if err == nil && ! has {
+						result.Insert()
+					}
+				}
 			}
 		}
 	}
@@ -221,14 +248,13 @@ func SaveSearchResult(responses map[string]*index.SearchResponse, rule models.Ru
 func ScheduleTasks(duration time.Duration) () {
 	for {
 		// insert repos from inputInfo
-		githubsearch.InsertAllRepos()
-
+		// githubsearch.InsertAllRepos()
 		// insert all enable repos to repos config table
-		models.InsertReposConfig()
+		// models.InsertReposConfig()
 
-		rules, err := models.GetRules()
+		rules, err := models.GetLocalRules()
 		if err == nil {
-			reposConfig, err := models.ListRepoConfig()
+			reposConfig, err := models.ListValidRepoConfig()
 			if err == nil {
 				mapTasks := SegmentationTask(reposConfig)
 				DistributionTask(mapTasks, rules)
@@ -236,6 +262,32 @@ func ScheduleTasks(duration time.Duration) () {
 		}
 
 		logger.Log.Infof("Complete the scan local repos, start to sleep %v seconds", duration*time.Second)
+
 		time.Sleep(duration * time.Second)
 	}
+}
+
+// waitTimeout waits for the waitgroup for the specified max timeout.
+// Returns true if waiting timed out.
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
+	}
+}
+
+func GetExt(filename string) (ext string) {
+	exts := strings.Split(filename, ".")
+
+	if len(exts) > 1 {
+		ext = exts[len(exts)-1]
+	}
+	return ext
 }

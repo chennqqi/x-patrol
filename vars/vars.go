@@ -24,10 +24,12 @@ THE SOFTWARE.
 
 package vars
 
+import "time"
+
 const (
-	DefaultPollInterval          = 30
+	DefaultPollInterval          = 900
 	DefaultMaxConcurrentIndexers = 2
-	DefaultPollEnabled           = true
+	DefaultPollEnabled           = false
 	DefaultVcs                   = "git"
 	DefaultBaseUrl               = "{url}/blob/master/{path}{anchor}"
 	DefaultAnchor                = "#L{line}"
@@ -45,4 +47,8 @@ var (
 	DEBUG_MODE bool
 
 	PAGE_SIZE = 10
+
+	TIME_OUT time.Duration = 60 * 4
+
+	Exts map[string]bool
 )

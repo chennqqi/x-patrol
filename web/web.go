@@ -118,7 +118,7 @@ func RunWeb(ctx *cli.Context) {
 			m.Get("/del/:id", routers.DeleteUser)
 		})
 
-		m.Group("/assets/", func() {
+		/*m.Group("/assets/", func() {
 			m.Get("", routers.ListAssets)
 			m.Get("/list/", routers.ListAssets)
 			m.Get("/list/:page", routers.ListAssets)
@@ -128,7 +128,7 @@ func RunWeb(ctx *cli.Context) {
 			m.Post("/edit/:id", routers.DoEditAssets)
 			m.Get("/del/:id", routers.DeleteAssets)
 			m.Get("/del_all/", routers.DeleteAllAssets)
-		})
+		})*/
 
 		m.Group("/tokens/", func() {
 			m.Get("", routers.ListTokens)
@@ -154,20 +154,31 @@ func RunWeb(ctx *cli.Context) {
 		})
 
 		m.Group("/repos/", func() {
-			m.Get("", routers.ListRepos)
-			m.Get("/list/", routers.ListRepos)
-			m.Get("/list/:page", routers.ListRepos)
-			m.Get("/enable/:id", routers.EnableRepo)
-			m.Get("/disable/:id", routers.DisableRepo)
-			m.Get("/del/", routers.DeleteAllRepo)
+			m.Get("", routers.ListReposConf)
+			m.Get("/list/", routers.ListReposConf)
+			m.Get("/list/:page", routers.ListReposConf)
+			m.Get("/new/", routers.NewRepoConf)
+			m.Post("/new/", routers.DoNewRepoConf)
+			m.Get("/edit/:id", routers.EditRepoConf)
+			m.Post("/edit/:id", routers.DoEditRepoConf)
+			m.Get("/enable/:id", routers.EnableRepoConf)
+			m.Get("/disable/:id", routers.DisableRepoConf)
+			m.Get("/del/:id", routers.DelRepoConfById)
 		})
 
 		m.Group("/reports/", func() {
 			m.Get("/github/", routers.ListGithubSearchResult)
 			m.Get("/github/:page", routers.ListGithubSearchResult)
 			m.Get("/github/confirm/:id", routers.ConfirmReportById)
+			m.Get("/github/reset/:id", routers.ResetReportById)
 			m.Get("/github/cancel/:id", routers.CancelReportById)
 			m.Get("/github/disable_repo/:id", routers.DisableRepoById)
+
+			m.Get("/history/", routers.ListHistoryGithubSearchResult)
+			m.Get("/history/:page", routers.ListHistoryGithubSearchResult)
+
+			m.Get("/confirm/", routers.ListConfirmGithubSearchResult)
+			m.Get("/confirm/:page", routers.ListConfirmGithubSearchResult)
 
 			/* For local repos search */
 			m.Get("/search/", routers.ListLocalSearchResultPage)

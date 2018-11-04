@@ -26,13 +26,13 @@ package githubsearch
 
 import (
 	"github.com/MiSecurity/x-patrol/models"
+	"github.com/MiSecurity/x-patrol/logger"
 
 	"github.com/google/go-github/github"
 
 	"encoding/json"
 	"time"
 	"sync"
-	"github.com/MiSecurity/x-patrol/logger"
 )
 
 var (
@@ -46,11 +46,11 @@ func GenerateSearchCodeTask() (map[int][]models.Rules, error) {
 	batch := ruleNum / SEARCH_NUM
 
 	for i := 0; i < batch; i++ {
-		result[i] = rules[SEARCH_NUM*i:SEARCH_NUM*(i+1)]
+		result[i] = rules[SEARCH_NUM*i : SEARCH_NUM*(i+1)]
 	}
 
 	if ruleNum%SEARCH_NUM != 0 {
-		result[batch] = rules[SEARCH_NUM*batch:ruleNum]
+		result[batch] = rules[SEARCH_NUM*batch : ruleNum]
 	}
 	return result, err
 }
@@ -63,10 +63,8 @@ func Search(rules []models.Rules) () {
 		for _, rule := range rules {
 			go func(rule models.Rules) {
 				defer wg.Done()
-
+				SaveResult(client.SearchCode(rule.Pattern))
 			}(rule)
-
-			SaveResult(client.SearchCode(rule.Pattern))
 		}
 		wg.Wait()
 	}
@@ -85,24 +83,30 @@ func RunSearchTask(mapRules map[int][]models.Rules, err error) () {
 	}
 }
 
-func SaveResult(result *github.CodeSearchResult, resp *github.Response, err error) () {
-	if err == nil && len(result.CodeResults) > 0 {
-		for _, resultItem := range result.CodeResults {
-			ret, err := json.Marshal(resultItem)
-			if err == nil {
-				var codeResult *models.CodeResult
-				err = json.Unmarshal(ret, &codeResult)
-				fullName := codeResult.Repository.GetFullName()
-				repoUrl := codeResult.Repository.GetHTMLURL()
-				codeResult.RepoName = fullName
-				inputInfo := models.NewInputInfo("repo", repoUrl, fullName)
-				has, err := inputInfo.Exist(repoUrl)
-				if err == nil && !has {
-					inputInfo.Insert()
-				}
-				exist, err := codeResult.Exist()
-				if err == nil && !exist {
-					codeResult.Insert()
+func SaveResult(results []*github.CodeSearchResult, err error) () {
+	for _, result := range results {
+		if err == nil && len(result.CodeResults) > 0 {
+			for _, resultItem := range result.CodeResults {
+				ret, err := json.Marshal(resultItem)
+				if err == nil {
+					var codeResult *models.CodeResult
+					err = json.Unmarshal(ret, &codeResult)
+					fullName := codeResult.Repository.GetFullName()
+					codeResult.RepoName = fullName
+
+					// 不在自动保存需要本地检测的库了，本地检测的库通过手工输入的方式添加
+					// repoUrl := codeResult.Repository.GetHTMLURL()
+					//inputInfo := models.NewInputInfo("repo", repoUrl, fullName)
+					//has, err := inputInfo.Exist(repoUrl)
+					//if err == nil && !has {
+					//	inputInfo.Insert()
+					//}
+
+					exist, err := codeResult.Exist()
+					logger.Log.Infoln(exist, err)
+					if err == nil && !exist {
+						logger.Log.Infoln(codeResult.Insert())
+					}
 				}
 			}
 		}
@@ -114,7 +118,8 @@ func ScheduleTasks(duration time.Duration) {
 		RunSearchTask(GenerateSearchCodeTask())
 
 		// insert repos from inputInfo
-		InsertAllRepos()
+		// 修改逻辑，不再自动进行本地检测了，而是通过手工指定的方式配置要扫描的库
+		// InsertAllRepos()
 
 		logger.Log.Infof("Complete the scan of Github, start to sleep %v seconds", duration*time.Second)
 		time.Sleep(duration * time.Second)

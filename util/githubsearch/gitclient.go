@@ -31,6 +31,8 @@ import (
 
 	"context"
 	"golang.org/x/oauth2"
+	"time"
+	"github.com/MiSecurity/x-patrol/logger"
 )
 
 var (
@@ -128,9 +130,43 @@ func (c *Client) GetUserOrgs(username string) ([]*github.Organization, *github.R
 	return c.Client.Organizations.List(ctx, username, nil)
 }
 
-func (c *Client) SearchCode(keyword string) (*github.CodeSearchResult, *github.Response, error) {
+func (c *Client) SearchCode(keyword string) ([]*github.CodeSearchResult, error) {
+	var allSearchResult []*github.CodeSearchResult
+	var err error
+
 	ctx := context.Background()
-	listOpt := github.ListOptions{Page: 1, PerPage: 500}
+	listOpt := github.ListOptions{PerPage: 100}
 	opt := &github.SearchOptions{Sort: "indexed", Order: "desc", TextMatch: true, ListOptions: listOpt}
-	return c.Client.Search.Code(ctx, keyword, opt)
+
+	for {
+		result, resp, err1 := c.Client.Search.Code(ctx, keyword, opt)
+
+		t := make([]github.CodeResult, 0)
+		for _, codeResult := range result.CodeResults {
+			id := codeResult.Repository.GetID()
+			repo, _, _ := c.Client.Repositories.GetByID(ctx, id)
+			pushTime := repo.GetPushedAt().Time
+			now := time.Now()
+			if now.Sub(pushTime).Hours()/24 <= 60 {
+				logger.Log.Infof("repo: %v, pushed Time: %v", repo.GetFullName(), pushTime)
+				t = append(t, codeResult)
+			}
+		}
+
+		result.CodeResults = t
+
+		logger.Log.Infoln(resp.Remaining, err1, resp.LastPage)
+		if resp.Remaining <= 5 {
+			time.Sleep(60 * time.Second)
+		}
+		time.Sleep(1 * time.Second)
+		allSearchResult = append(allSearchResult, result)
+		err = err1
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allSearchResult, err
 }
